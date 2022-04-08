@@ -1,0 +1,8 @@
+setup.cfg
+setup.py
+Byond_API/__init__.py
+Byond_API/byond_api.py
+Byond_API.egg-info/PKG-INFO
+Byond_API.egg-info/SOURCES.txt
+Byond_API.egg-info/dependency_links.txt
+Byond_API.egg-info/top_level.txt
