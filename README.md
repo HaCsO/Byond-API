@@ -12,6 +12,7 @@ server_manifest = servers.get_server_manifest("ss220")
 ```
 
 ## Info object
+```
 Vars:
     Type - Type of Info object (Info, Revision, Manifest)
     raw_data - Raw dict of data
@@ -45,3 +46,4 @@ Vars:
         date
     for Manifest:
         manifest
+```
