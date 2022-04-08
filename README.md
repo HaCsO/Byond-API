@@ -2,14 +2,14 @@
 A simple and convenient extension that can be used to work with the servers of the game Space Station 13 based on the BayStation build.
 
 ## Examples
-`
+```
 from Byond_API import ByondAPI
 servers = ByondAPI()
 servers.add_server("ss220", ('game.ss220.space' ,7725))
 server_info = servers.get_server_info("ss220")
 server_revision = servers.get_server_revision("ss220")
 server_manifest = servers.get_server_manifest("ss220")
-`
+```
 
 ## Info object
 Vars:
