@@ -1,6 +1,6 @@
+import json
 from urllib.parse import unquote
 import socket
-import datetime
 
 class Info:
 	types = {
@@ -21,8 +21,11 @@ class Info:
 			self.players_num =		 data.get("players")
 			self.station_time =		 data.get("stationtime")
 			self.round_duration =	 data.get("roundduration")
-			self.round_time =		 data.get("roundtime")
+			if not self.round_duration:
+				self.round_duration= data.get("roundtime")
 			self.map =				 data.get("map")
+			if not self.map:
+				self.map = 			 data.get("map_name")
 			self.ticker_state =		 data.get("ticker_state")
 			self.admins_num =		 data.get("admins")
 			self.players =			 data.get("playerlist").split("\n") if data.get("playerlist") else None
@@ -41,12 +44,15 @@ class Info:
 		elif types == 2:
 			# Manifest
 			self.manifest = {}
-			for k, v in data.items():
-				self.manifest[k] = []
-				peoples = v.split("\n")
-				for i in peoples:
-					name, role = i.split(", ")
-					self.manifest[k].append({name: role})
+			if not isinstance(data, dict):
+				for k, v in data.items():
+					self.manifest[k] = []
+					peoples = v.split("\n")
+					for i in peoples:
+						name, role = i.split(", ")
+						self.manifest[k].append({name: role})
+			else:
+				self.manifest = data
 
 			# self.manifest = data
 		self.raw_data = data
@@ -59,50 +65,7 @@ class Info:
 
 
 class BAPImeta:
-	set_names = {
-		"heads": "Command",
-		"spt": "Command Support",
-		"sec": "Security",
-		"med": "Medical",
-		"sci": "Science",
-		"chr": "Church",
-		"exp": "Expedition",
-		"car": "Cargo",
-		"sup": "Supply",
-		"eng": "Engineering",
-		"srv": "Service",
-		"civ": "Miscellaneous",
-		"bot": "Synthetic",
-	}
-	exceptions = {
-		"storyteller": "Выбирается...",
-		"playerlist": "Ой ой, а тут пусто!"
-	}
-	fields = {
-		"status": {
-			"eris": {
-				"storyteller": "Story teller",
-				"shiptime": "Station time"
-			},
-			"bay": {
-				"mode": "Gamemode",
-				"map": "Map",
-				"stationtime": "Station time"
-			},
-		},
-		"revision": {
-			"eris": {
-			},
-			"bay": {
-				"gameid": "Game id",
-				"dm_version": "DM version",
-				"dm_build": "DM build",
-				"dd_version": "DD version",
-				"dd_build": "DD build"
-			}  
-		},
-	}
-
+	builds = ["bay", "paradise"]
 	replacements = {
 		"%3a": ":",
 		"+": " ",
@@ -111,41 +74,49 @@ class BAPImeta:
 		"%26": "\n",
 		"%2526%252339%253b": "'"
 	}
+	support_procs = {
+		"bay": ["manifest", "status", "revision"],
+		"paradise": ["manifest", "status"],
+	}
 
 class ByondAPI(BAPImeta):
 	def __init__(self):
 		self.servers		=	{} # {"servername" = ("domen", port:int)}
 		self.comm_tokens	=	{} # {"servername" = "token"}
 
-	def add_server(self, name: str, data: tuple):
+	def add_server(self, name: str, build: str, data: tuple):
 		if len(data) != 2 or not isinstance(data[0], str) or not isinstance(data[1], int): raise TypeError("Wrong type of data. Awaited: (\"ip\", port)")
 		if not name: raise TypeError("Empty server name.")
 		if name in self.servers: raise NameError("Trying to add already added server name.")
-		self.servers[name] = data
-		return True
-
-	def edit_server(self, name: str, data: tuple):
-		if len(data) != 2 or not isinstance(data[0], str) or not isinstance(data[1], int): raise TypeError("Wrong type of data. Awaited: (\"ip\", port)")
-		if not name: raise TypeError("Empty server name.")
-		if name not in self.servers: raise NameError(f"Server with name \"{name}\" dosn't exist.")
-		self.servers[name] = data
+		if not build: raise TypeError(f"Build of server must be specified! (possible: {''.join(self.builds)})")
+		self.servers[name] = {"data": data, "build": build}
 		return True
 
 	def __do_command(self, server, cmd:str):
 		if not server: raise TypeError("Empty server name.")
-		return self.__decode_byond(self.__send_recieve_data(server, cmd))
+		return self.__decode_byond(server, self.__send_recieve_data(server, cmd))
 
 	def get_server_revision(self, server:str=None):
+		build = self.servers[server]['build']
+		if "revision" not in self.support_procs[build]: raise TypeError(f"Build {build} dosn't support this proc!")
 		return Info(self.__do_command(server, "revision"), 1)
 
 	def get_server_info(self, server:str=None):
+		build = self.servers[server]['build']
+		if "status" not in self.support_procs[build]: raise TypeError(f"Build {build} dosn't support this proc!")
 		return Info(self.__do_command(server, "status=2"), 0)
 
 	def get_server_manifest(self, server:str=None):
+		build = self.servers[server]['build']
+		if "manifest" not in self.support_procs[build]: raise TypeError(f"Build {build} dosn't support this proc!")
 		return Info(self.__do_command(server, "manifest"), 2)
 
 	def __prepare_packet(self, server, data):
-		if server in self.comm_tokens: data += "&key="+self.comm_tokens[server]
+		if self.servers[server]["build"] == "paradise":
+			data = f"{data}=&"
+		elif self.servers[server]["build"] == "paradise" and server in self.comm_tokens:
+			data = data + "&key=" + self.comm_tokens[server]
+
 		return bytes([0x00, 0x83, 0x00, len(data)+7, 0x00, 0x00, 0x00, 0x00, 0x00, 63, *map(ord, data), 0x00])
 
 	def __send_recieve_data(self, server, command):
@@ -153,7 +124,7 @@ class ByondAPI(BAPImeta):
 
 		sock = socket.socket()
 		try:
-			sock.connect(self.servers[server])
+			sock.connect(self.servers[server]["data"])
 		except ConnectionRefusedError:
 			return None
 		dat = self.__prepare_packet(server, command)
@@ -162,9 +133,22 @@ class ByondAPI(BAPImeta):
 		sock.close()
 		return dbuff
 
-	def __decode_byond(self, data=None):
+	def __decode_byond(self, server, data):
 		if not data: return None
+		if self.servers[server]["build"] == "paradise":
+			return self.__decode_paradise_data(data)
+		else:
+			return self.__decode_bay_data(data)
 
+	def __decode_paradise_data(self, data):
+		data = "".join([chr(x) for x in data[5:-1]])
+		if len(data) <= 0: return None
+		for k, v in self.replacements.items():
+			data = data.replace(k, v)
+		data = json.loads(data)
+		return data
+
+	def __decode_bay_data(self, data):
 		data = "".join([chr(x) for x in data[5:-1]])
 		for k, v in self.replacements.items():
 			data = data.replace(k, v)
@@ -189,3 +173,21 @@ class ByondAPI(BAPImeta):
 
 	def __str__(self) -> str:
 		return f"<ByondAPI servers={self.servers.keys()}>"
+
+
+serv = ByondAPI()
+serv.add_server("ss220_paradise", "paradise", ("ex.ss220.space", 7724))
+serv.add_server("ss220_sierra", "bay", ("game.ss220.space", 7725))
+# serv.add_server("ss220_paradise", "paradise", ("127.0.0.1", 49576))
+print(serv.get_server_info("ss220_paradise").raw_data)
+print("-"*20)
+print(serv.get_server_info("ss220_sierra").raw_data)
+print("-"*20)
+print(serv.get_server_manifest("ss220_paradise").manifest)
+print("-"*20)
+print(serv.get_server_manifest("ss220_sierra").manifest)
+print("-"*20)
+print(serv.get_server_revision("ss220_paradise").raw_data)
+print("-"*20)
+print(serv.get_server_revision("ss220_sierra").raw_data)
+print("-"*20)

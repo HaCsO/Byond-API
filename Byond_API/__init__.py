@@ -1,1 +1,1 @@
-from byond_api import ByondAPI, Info
+from .byond_api import ByondAPI, Info
