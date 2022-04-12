@@ -5,7 +5,7 @@ with open("README.md", "r") as readme_file:
 
 setup(
     name="Byond_API",
-    version='0.2.0',
+    version='0.2.1',
     url="https://github.com/HaCsO/Byond-API",
     description="Simple way to take data from BYOND",
     packages=['Byond_API'],

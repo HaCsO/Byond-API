@@ -173,21 +173,3 @@ class ByondAPI(BAPImeta):
 
 	def __str__(self) -> str:
 		return f"<ByondAPI servers={self.servers.keys()}>"
-
-
-serv = ByondAPI()
-serv.add_server("ss220_paradise", "paradise", ("ex.ss220.space", 7724))
-serv.add_server("ss220_sierra", "bay", ("game.ss220.space", 7725))
-# serv.add_server("ss220_paradise", "paradise", ("127.0.0.1", 49576))
-print(serv.get_server_info("ss220_paradise").raw_data)
-print("-"*20)
-print(serv.get_server_info("ss220_sierra").raw_data)
-print("-"*20)
-print(serv.get_server_manifest("ss220_paradise").manifest)
-print("-"*20)
-print(serv.get_server_manifest("ss220_sierra").manifest)
-print("-"*20)
-print(serv.get_server_revision("ss220_paradise").raw_data)
-print("-"*20)
-print(serv.get_server_revision("ss220_sierra").raw_data)
-print("-"*20)
