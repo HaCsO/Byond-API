@@ -84,7 +84,7 @@ class ByondAPI(BAPImeta):
 		self.servers		=	{} # {"servername" = ("domen", port:int)}
 		self.comm_tokens	=	{} # {"servername" = "token"}
 
-	def add_server(self, name: str, build: str, data: tuple):
+	def add_server(self, name: str, build: str, data: tuple) -> None:
 		if len(data) != 2 or not isinstance(data[0], str) or not isinstance(data[1], int): raise TypeError("Wrong type of data. Awaited: (\"ip\", port)")
 		if not name: raise TypeError("Empty server name.")
 		if name in self.servers: raise NameError("Trying to add already added server name.")
@@ -96,17 +96,17 @@ class ByondAPI(BAPImeta):
 		if not server: raise TypeError("Empty server name.")
 		return self.__decode_byond(server, self.__send_recieve_data(server, cmd))
 
-	def get_server_revision(self, server:str=None):
+	def get_server_revision(self, server:str=None) -> Info:
 		build = self.servers[server]['build']
 		if "revision" not in self.support_procs[build]: raise TypeError(f"Build {build} dosn't support this proc!")
 		return Info(self.__do_command(server, "revision"), 1)
 
-	def get_server_info(self, server:str=None):
+	def get_server_info(self, server:str=None) -> Info:
 		build = self.servers[server]['build']
 		if "status" not in self.support_procs[build]: raise TypeError(f"Build {build} dosn't support this proc!")
 		return Info(self.__do_command(server, "status=2"), 0)
 
-	def get_server_manifest(self, server:str=None):
+	def get_server_manifest(self, server:str=None) -> Info:
 		build = self.servers[server]['build']
 		if "manifest" not in self.support_procs[build]: raise TypeError(f"Build {build} dosn't support this proc!")
 		return Info(self.__do_command(server, "manifest"), 2)

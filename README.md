@@ -1,14 +1,24 @@
 # Byond-API
 A simple and convenient extension that can be used to work with the servers of the game Space Station 13 based on the BayStation build.
 
+supported builds = ["bay", "paradise"]
+
 ## Examples
 ```
 from Byond_API import ByondAPI
 servers = ByondAPI()
-servers.add_server("ss220", ('game.ss220.space' ,7725))
+servers.add_server("ss220", "bay" ('game.ss220.space' ,7725))
 server_info = servers.get_server_info("ss220")
 server_revision = servers.get_server_revision("ss220")
 server_manifest = servers.get_server_manifest("ss220")
+```
+
+## Proc's
+```
+def add_server(name: str, build: str, data: tuple) -> None:
+def get_server_revision(server:str=None) -> Info:
+def get_server_info(server:str=None) -> Info:
+def get_server_manifest(server:str=None) -> Info:
 ```
 
 ## Info object
