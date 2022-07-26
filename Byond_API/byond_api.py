@@ -9,6 +9,11 @@ class Info:
 		2: "Manifest"
 	}
 	def __init__(self, data, types):
+		if not data:
+			self.serveronline = False
+			return
+			
+		self.serveronline = True
 		if types == 0:
 			# Info
 			self.version =			 data.get("version")
